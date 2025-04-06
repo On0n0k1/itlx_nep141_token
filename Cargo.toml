@@ -2,7 +2,7 @@
 name = "fungible-token"
 version = "1.0.0"
 authors = ["Intellex AI Protocol <contact@intellex.ai>"]
-edition = "2018"
+edition = "2021"
 # NEP-0330 is automatically implemented for all contracts built with https://github.com/near/cargo-near.
 # Link to the repository will be available via `contract_source_metadata` view-function.
 repository = "https://github.com/brainstems/itlx_nep141_token"
@@ -34,16 +34,17 @@ container_build_command = [
 ]
 
 [dependencies]
-near-sdk = "5.9.0"
-near-contract-standards = "5.9.0"
+near-sdk = { version = "=5.7.0", features = ["unit-testing"] }
+near-contract-standards = "=5.7.0"
 base64 = "0.22.1"
 
 [dev-dependencies]
-near-sdk = { version = "5.9.0", features = ["unit-testing"] }
-near-workspaces = { version = "0.16.0", features = ["unstable"] }
+# near-sdk = { version = "=5.11.0", features = ["unit-testing"] }
+near-workspaces = { version = "0.18.0", features = ["unstable"] }
+# near-workspaces = { version = "=0.15.1" }
 anyhow = "1.0.97"
 tokio = { version = "1.44.1", features = ["full"] }
-cargo-near-build = "0.4.4"
+cargo-near-build = "0.4.5"
 
 [profile.release]
 codegen-units = 1

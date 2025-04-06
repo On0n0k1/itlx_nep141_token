@@ -86,9 +86,7 @@ async fn storage_deposit_minimal_deposit() -> anyhow::Result<()> {
         .saturating_sub(new_account.view_account().await?.balance);
     // new_account is charged the transaction fee, so it should loose a bit more than minimal_deposit
     assert!(new_account_balance_diff > minimal_deposit);
-    assert!(
-        new_account_balance_diff < minimal_deposit.saturating_add(NearToken::from_near(1))
-    );
+    assert!(new_account_balance_diff < minimal_deposit.saturating_add(NearToken::from_near(1)));
 
     let contract_balance_diff = ft_contract
         .view_account()
@@ -106,6 +104,18 @@ async fn storage_deposit_minimal_deposit() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[derive(near_sdk::serde::Serialize, near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct StorageBalanceBounds {
+    min: U128,
+    max: U128,
+}
+#[derive(near_sdk::serde::Serialize, near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct StorageBalanceOf {
+    total: U128,
+    available: U128,
+}
 #[tokio::test]
 async fn storage_deposit_refunds_excessive_deposit() -> anyhow::Result<()> {
     let initial_balance = U128::from(NearToken::from_near(10000).as_yoctonear());
@@ -119,12 +129,7 @@ async fn storage_deposit_refunds_excessive_deposit() -> anyhow::Result<()> {
 
     // Check the storage balance bounds to make sure we have the right minimal deposit
     //
-    #[derive(near_sdk::serde::Serialize, near_sdk::serde::Deserialize)]
-    #[serde(crate = "near_sdk::serde")]
-    struct StorageBalanceBounds {
-        min: U128,
-        max: U128,
-    }
+
     let storage_balance_bounds: StorageBalanceBounds = ft_contract
         .call("storage_balance_bounds")
         .view()
@@ -141,12 +146,7 @@ async fn storage_deposit_refunds_excessive_deposit() -> anyhow::Result<()> {
 
     // Check that a non-registered account does not have storage balance
     //
-    #[derive(near_sdk::serde::Serialize, near_sdk::serde::Deserialize)]
-    #[serde(crate = "near_sdk::serde")]
-    struct StorageBalanceOf {
-        total: U128,
-        available: U128,
-    }
+
     let storage_balance_bounds: Option<StorageBalanceOf> = ft_contract
         .call("storage_balance_of")
         .args_json(near_sdk::serde_json::json!({"account_id": "non-registered-account"}))
@@ -197,9 +197,7 @@ async fn storage_deposit_refunds_excessive_deposit() -> anyhow::Result<()> {
         .saturating_sub(new_account.view_account().await?.balance);
     // new_account is charged the transaction fee, so it should loose a bit more than minimal_deposit
     assert!(new_account_balance_diff > minimal_deposit);
-    assert!(
-        new_account_balance_diff < minimal_deposit.saturating_add(NearToken::from_near(1))
-    );
+    assert!(new_account_balance_diff < minimal_deposit.saturating_add(NearToken::from_near(1)));
 
     let contract_balance_diff = ft_contract
         .view_account()

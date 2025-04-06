@@ -1,38 +1,48 @@
-use std::sync::LazyLock;
-
-use cargo_near_build::BuildOpts;
 use near_sdk::{json_types::U128, AccountId, NearToken};
 use near_workspaces::{Account, Contract, DevNetwork, Worker};
+use tokio::sync::OnceCell;
 
 const INITIAL_BALANCE: NearToken = NearToken::from_near(30);
 pub const ONE_YOCTO: NearToken = NearToken::from_yoctonear(1);
 
-static FUNGIBLE_TOKEN_CONTRACT_WASM: LazyLock<Vec<u8>> = LazyLock::new(|| {
-    let artifact = cargo_near_build::build(BuildOpts {
-        no_abi: true,
-        no_embed_abi: true,
-        ..Default::default()
-    })
-    .expect("Could not compile Fungible Token contract for tests");
+// static FUNGIBLE_TOKEN_CONTRACT_WASM: LazyLock<Vec<u8>> = LazyLock::new(|| {
+//     let artifact = cargo_near_build::build(BuildOpts {
+//         no_abi: true,
+//         no_embed_abi: true,
+//         ..Default::default()
+//     })
+//     .expect("Could not compile Fungible Token contract for tests");
 
-    std::fs::read(&artifact.path).unwrap_or_else(|err| {
-        panic!(
-            "Could not read Fungible Token WASM file from {}\nErr: {err}",
-            artifact.path,
-        )
-    })
-});
+//     std::fs::read(&artifact.path).unwrap_or_else(|err| {
+//         panic!(
+//             "Could not read Fungible Token WASM file from {}\nErr: {err}",
+//             artifact.path,
+//         )
+//     })
+// });
 
-static DEFI_CONTRACT_WASM: LazyLock<Vec<u8>> = LazyLock::new(|| {
-    let artifact_path = "tests/contracts/defi/res/defi.wasm";
+// static DEFI_CONTRACT_WASM: LazyLock<Vec<u8>> = LazyLock::new(|| {
+//     let artifact_path = "tests/contracts/defi/res/defi.wasm";
 
-    std::fs::read(artifact_path).unwrap_or_else(|err| {
-        panic!(
-            "Could not read DeFi WASM file from {}\nErr: {err}",
-            artifact_path
-        )
-    })
-});
+//     std::fs::read(artifact_path).unwrap_or_else(|err| {
+//         panic!(
+//             "Could not read DeFi WASM file from {}\nErr: {err}",
+//             artifact_path
+//         )
+//     })
+// });
+static FUNGIBLE_TOKEN_CONTRACT_WASM: OnceCell<Vec<u8>> = OnceCell::const_new();
+static DEFI_CONTRACT_WASM: OnceCell<Vec<u8>> = OnceCell::const_new();
+
+async fn ft_contract_wasm_init() -> Vec<u8> {
+    near_workspaces::compile_project(".").await.unwrap()
+}
+
+async fn defi_contract_wasm_init() -> Vec<u8> {
+    near_workspaces::compile_project("./tests/contracts/defi/")
+        .await
+        .unwrap()
+}
 
 pub async fn init_accounts(root: &Account) -> anyhow::Result<(Account, Account, Account, Account)> {
     // create accounts
@@ -69,7 +79,13 @@ pub async fn init_contracts(
     initial_balance: U128,
     account: &Account,
 ) -> anyhow::Result<(Contract, Contract)> {
-    let ft_contract = worker.dev_deploy(&FUNGIBLE_TOKEN_CONTRACT_WASM).await?;
+    let ft_contract_wasm = FUNGIBLE_TOKEN_CONTRACT_WASM
+        .get_or_init(ft_contract_wasm_init)
+        .await;
+    let defi_contract_wasm = DEFI_CONTRACT_WASM
+        .get_or_init(defi_contract_wasm_init)
+        .await;
+    let ft_contract = worker.dev_deploy(ft_contract_wasm).await?;
 
     let res = ft_contract
         .call("new_default_meta")
@@ -79,7 +95,7 @@ pub async fn init_contracts(
         .await?;
     assert!(res.is_success());
 
-    let defi_contract = worker.dev_deploy(&DEFI_CONTRACT_WASM).await?;
+    let defi_contract = worker.dev_deploy(defi_contract_wasm).await?;
 
     let res = defi_contract
         .call("new")
